@@ -46,8 +46,8 @@ async def health_check():
     }
 
 # Importar rutas
-from .auth import router as auth_router
-from .analysis import router as analysis_router
+from api.auth import router as auth_router
+from api.analysis import router as analysis_router
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(analysis_router, prefix="/api/analysis", tags=["analysis"])
