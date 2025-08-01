@@ -13,7 +13,11 @@ app = FastAPI(
 )
 
 # Configurar CORS con variables de entorno
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://app-resumen-frontend.vercel.app").split(",")
+
+# Asegurarse de que localhost:3000 esté en las origins permitidas
+if "http://localhost:3000" not in allowed_origins:
+    allowed_origins.append("http://localhost:3000")
 
 app.add_middleware(
     CORSMiddleware,

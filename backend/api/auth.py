@@ -68,6 +68,15 @@ async def register(request: RegisterRequest):
     Registrar nuevo usuario en Supabase
     """
     try:
+        # Verificar si el usuario ya existe
+        try:
+            existing_user = supabase_admin.auth.admin.get_user_by_email(request.email)
+            if existing_user and existing_user.user:
+                raise HTTPException(status_code=400, detail="El email ya está registrado")
+        except Exception as check_error:
+            # Si no se puede verificar, continuar con el registro
+            logger.info(f"No se pudo verificar usuario existente: {str(check_error)}")
+        
         # Registrar usuario en Supabase Auth
         response = supabase.auth.sign_up({
             "email": request.email,
@@ -108,9 +117,13 @@ async def register(request: RegisterRequest):
             }
         }
         
+    except HTTPException:
+        # Re-lanzar HTTPExceptions tal como están
+        raise
     except Exception as e:
         logger.error(f"Error en registro: {str(e)}")
-        if "already registered" in str(e).lower():
+        error_message = str(e).lower()
+        if "already registered" in error_message or "user already registered" in error_message:
             raise HTTPException(status_code=400, detail="El email ya está registrado")
         raise HTTPException(status_code=400, detail="Error al registrar usuario")
 
