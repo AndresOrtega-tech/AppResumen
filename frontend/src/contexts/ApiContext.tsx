@@ -193,7 +193,7 @@ interface ApiContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, fullName?: string) => Promise<void>
+  register: (email: string, password: string, fullName?: string) => Promise<AuthResponse>
   logout: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -273,7 +273,13 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
         password, 
         full_name: fullName 
       })
-      setUser(response.user)
+      
+      // Solo establecer el usuario si no necesita confirmación
+      if (!response.user.needs_confirmation) {
+        setUser(response.user)
+      }
+      
+      return response
     } finally {
       setLoading(false)
     }

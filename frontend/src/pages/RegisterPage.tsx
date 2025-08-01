@@ -8,7 +8,9 @@ const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [needsConfirmation, setNeedsConfirmation] = useState(false)
   const { register, isAuthenticated } = useApi()
   const navigate = useNavigate()
 
@@ -22,11 +24,20 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccess('')
+    setNeedsConfirmation(false)
     setIsSubmitting(true)
 
     try {
-      await register(email, password, fullName)
-      navigate('/')
+      const result = await register(email, password, fullName)
+      
+      // Verificar si el usuario necesita confirmar su email
+      if (result?.user?.needs_confirmation) {
+        setNeedsConfirmation(true)
+        setSuccess('Registro exitoso. Te hemos enviado un email de confirmación. Revisa tu bandeja de entrada.')
+      } else {
+        navigate('/')
+      }
     } catch (err: any) {
       console.error('Error en registro:', err)
       
@@ -71,6 +82,25 @@ const RegisterPage: React.FC = () => {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">{error}</h3>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="rounded-md bg-green-50 p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">{success}</h3>
+                {needsConfirmation && (
+                  <p className="mt-2 text-sm text-green-700">
+                    Una vez que confirmes tu email, podrás{' '}
+                    <Link to="/login" className="font-medium text-green-600 hover:text-green-500">
+                      iniciar sesión
+                    </Link>
+                    .
+                  </p>
+                )}
               </div>
             </div>
           </div>

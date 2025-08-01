@@ -8,6 +8,9 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendMessage, setResendMessage] = useState('')
   const { login, isAuthenticated } = useApi()
   const navigate = useNavigate()
 
@@ -21,6 +24,8 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setNeedsConfirmation(false)
+    setResendMessage('')
     setIsSubmitting(true)
 
     try {
@@ -34,7 +39,13 @@ const LoginPage: React.FC = () => {
       if (err?.response?.status === 401) {
         errorMessage = 'Email o contraseña incorrectos'
       } else if (err?.response?.status === 400) {
-        errorMessage = err.response?.data?.detail || 'Datos de login inválidos'
+        const detail = err.response?.data?.detail || 'Datos de login inválidos'
+        errorMessage = detail
+        
+        // Detectar si necesita confirmación de email
+        if (detail.includes('confirmar tu email') || detail.includes('email not confirmed')) {
+          setNeedsConfirmation(true)
+        }
       } else if (err?.response?.status === 500) {
         errorMessage = 'Error del servidor. Inténtalo más tarde'
       } else if (err?.response?.data?.detail) {
@@ -46,6 +57,33 @@ const LoginPage: React.FC = () => {
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    setIsResending(true)
+    setResendMessage('')
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${API_URL}/api/auth/resend-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (response.ok) {
+        setResendMessage('Email de confirmación enviado. Revisa tu bandeja de entrada.')
+      } else {
+        const errorData = await response.json()
+        setResendMessage(errorData.detail || 'Error al enviar email de confirmación')
+      }
+    } catch (error) {
+      setResendMessage('Error al enviar email de confirmación')
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -72,6 +110,37 @@ const LoginPage: React.FC = () => {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                {needsConfirmation && (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      disabled={isResending}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-500 disabled:opacity-50"
+                    >
+                      {isResending ? (
+                        <>
+                          <Loader2 className="inline mr-1 h-3 w-3 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        'Reenviar email de confirmación'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {resendMessage && (
+          <div className={`rounded-md p-4 ${resendMessage.includes('enviado') ? 'bg-green-50' : 'bg-yellow-50'}`}>
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className={`text-sm font-medium ${resendMessage.includes('enviado') ? 'text-green-800' : 'text-yellow-800'}`}>
+                  {resendMessage}
+                </h3>
               </div>
             </div>
           </div>
