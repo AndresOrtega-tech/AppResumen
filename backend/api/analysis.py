@@ -33,8 +33,8 @@ async def analyze_text(request: AnalysisRequest):
     Analizar texto usando Gemini Pro y guardar en Supabase
     """
     try:
-        # 1. Configurar el modelo Gemini Pro
-        model = genai.GenerativeModel('gemini-pro')
+        # 1. Configurar el modelo Gemini
+        model = genai.GenerativeModel('gemini-2.0-flash')
         
         # 2. Crear prompt para análisis completo
         prompt = f"""
@@ -81,10 +81,14 @@ async def analyze_text(request: AnalysisRequest):
         # 5. Guardar en Supabase
         analysis_id = str(uuid.uuid4())
         
+        # Para pruebas, usar un UUID válido que existe en auth.users
+        # En producción, esto vendría del token de autenticación
+        user_id = "633a8bbc-6727-426b-ad97-a497fbb15653"
+        
         # Preparar datos para insertar
         insert_data = {
             "id": analysis_id,
-            "user_id": "00000000-0000-0000-0000-000000000000",  # TODO: Obtener del usuario autenticado
+            "user_id": user_id,
             "original_text": request.text,
             "summary": analysis_data["summary"],
             "keywords": analysis_data["keywords"],
@@ -151,11 +155,15 @@ async def get_analysis_history(page: int = 1, limit: int = 10):
                 created_at=item['created_at']
             ))
         
+        # Calcular total de páginas
+        total_pages = (total + limit - 1) // limit if total > 0 else 0
+        
         return AnalysisHistory(
             analyses=analyses,
             total=total,
             page=page,
-            limit=limit
+            limit=limit,
+            total_pages=total_pages
         )
         
     except Exception as e:
@@ -209,10 +217,10 @@ async def health_check():
         except Exception as e:
             supabase_status = f"error: {str(e)}"
         
-        # Verificar conexión a Gemini Pro
+        # Verificar conexión a Gemini
         gemini_status = "ok"
         try:
-            model = genai.GenerativeModel('gemini-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             test_response = model.generate_content("Test")
             if not test_response:
                 gemini_status = "error: no response"
@@ -222,7 +230,7 @@ async def health_check():
         return {
             "status": "healthy" if supabase_status == "ok" and gemini_status == "ok" else "unhealthy",
             "supabase": supabase_status,
-            "gemini_pro": gemini_status,
+            "gemini": gemini_status,
             "timestamp": datetime.now().isoformat()
         }
         
